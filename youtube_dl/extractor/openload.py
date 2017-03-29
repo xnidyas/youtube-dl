@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import re
+import js2py
 
 from .common import InfoExtractor
 from ..compat import compat_chr
@@ -74,36 +75,34 @@ class OpenloadIE(InfoExtractor):
         ol_id = self._search_regex(
             '<span[^>]+id="[^"]+"[^>]*>([0-9A-Za-z]+)</span>',
             webpage, 'openload ID')
+        js_code = self._search_regex(
+            r"(ﾟωﾟﾉ=.*?\('_'\);.*?)ﾟωﾟﾉ= /｀ｍ´）ﾉ ~┻━┻   //\*´∇｀\*/ \['_'\];",
+            webpage, 'openload decrypt code', flags=re.S)
 
-        decoded = ''
-        a = ol_id[0:24]
-        b = []
-        for i in range(0, len(a), 8):
-            b.append(int(a[i:i + 8] or '0', 16))
-        ol_id = ol_id[24:]
-        j = 0
-        k = 0
-        while j < len(ol_id):
-            c = 128
-            d = 0
-            e = 0
-            f = 0
-            _more = True
-            while _more:
-                if j + 1 >= len(ol_id):
-                    c = 143
-                f = int(ol_id[j:j + 2] or '0', 16)
-                j += 2
-                d += (f & 127) << e
-                e += 7
-                _more = f >= c
-            g = d ^ b[k % 3]
-            for i in range(4):
-                char_dec = (g >> 8 * i) & (c + 127)
-                char = compat_chr(char_dec)
-                if char != '#':
-                    decoded += char
-            k += 1
+        js_code = '''
+            var id = "%s"
+              , decoded
+              , document = {
+                getElementById: true
+              }
+              , window = this
+              , $ = function(){
+                  return {
+                    text: function(a){
+                      if(a)
+                        decoded = a;
+                      else
+                        return id;
+                    },
+                    ready: function(a){
+                      a()
+                    }
+                  }
+                };
+            %s;
+            decoded;''' % (ol_id, js_code)
+
+        decoded = js2py.eval_js(js_code)
 
         video_url = 'https://openload.co/stream/%s?mime=true'
         video_url = video_url % decoded
