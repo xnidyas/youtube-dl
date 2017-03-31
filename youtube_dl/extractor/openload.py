@@ -66,15 +66,21 @@ class OpenloadIE(InfoExtractor):
     _PAIR_INFO_URL = _API_URL + '/streaming/info'
     _GET_VIDEO_URL = _API_URL + '/streaming/get?file=%s'
 
+    @staticmethod
+    def _extract_urls(webpage):
+        return re.findall(
+            r'<iframe[^>]+src=["\']((?:https?://)?(?:openload\.(?:co|io)|oload\.tv)/embed/[a-zA-Z0-9-_]+)',
+            webpage)
+
     def _decode_id(self, ol_id):
         try:
             # raise # uncomment to test method with evaluating
             decoded = ''
-            a = ol_id[-40:]
+            a = ol_id[:48]
             b = []
             for i in range(0, len(a), 8):
                 b.append(int(a[i:i + 8] or '0', 16))
-            ol_id = ol_id[:-40]
+            ol_id = ol_id[48:]
             j = 0
             k = 0
             while j < len(ol_id):
@@ -91,7 +97,8 @@ class OpenloadIE(InfoExtractor):
                     d += (f & 127) << e
                     e += 7
                     _more = f >= c
-                g = d ^ b[k % 5]
+                g = d ^ b[k % 6]
+                g = g ^ 2689694583
                 for i in range(4):
                     char_dec = (g >> 8 * i) & (c + 127)
                     char = compat_chr(char_dec)
@@ -110,15 +117,13 @@ class OpenloadIE(InfoExtractor):
                 r"(ﾟωﾟﾉ=.*?\('_'\);.*?)ﾟωﾟﾉ= /｀ｍ´）ﾉ ~┻━┻   //\*´∇｀\*/ \['_'\];",
                 webpage, 'openload decrypt code', flags=re.S)
             js_code = re.sub('''if\s*\([^\}]+?typeof[^\}]+?\}''', '', js_code)
-        except:
+        except ExtractorError:
             raise DecodeError('Could not find JavaScript')
 
         js_code = '''
             var id = "%s"
               , decoded
-              , document = {
-                getElementById: true
-              }
+              , document
               , window = this
               , $ = function(){
                   return {
@@ -137,7 +142,10 @@ class OpenloadIE(InfoExtractor):
             decoded;''' % (ol_id, js_code)
 
         try:
-            return js2py.eval_js(js_code)
+            decoded = js2py.eval_js(js_code)
+            if ' ' in decoded or decoded == '':
+                raise
+            return decoded
         except:
             raise DecodeError('Could not eval ID decoding')
 
