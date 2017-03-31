@@ -72,44 +72,6 @@ class OpenloadIE(InfoExtractor):
             r'<iframe[^>]+src=["\']((?:https?://)?(?:openload\.(?:co|io)|oload\.tv)/embed/[a-zA-Z0-9-_]+)',
             webpage)
 
-    def _decode_id(self, ol_id):
-        try:
-            # raise # uncomment to test method with evaluating
-            decoded = ''
-            a = ol_id[:48]
-            b = []
-            for i in range(0, len(a), 8):
-                b.append(int(a[i:i + 8] or '0', 16))
-            ol_id = ol_id[48:]
-            j = 0
-            k = 0
-            while j < len(ol_id):
-                c = 128
-                d = 0
-                e = 0
-                f = 0
-                _more = True
-                while _more:
-                    if j + 1 >= len(ol_id):
-                        c = 143
-                    f = int(ol_id[j:j + 2] or '0', 16)
-                    j += 2
-                    d += (f & 127) << e
-                    e += 7
-                    _more = f >= c
-                g = d ^ b[k % 6]
-                g = g ^ 2689694583
-                for i in range(4):
-                    char_dec = (g >> 8 * i) & (c + 127)
-                    char = compat_chr(char_dec)
-                    if char != '#':
-                        decoded += char
-                k += 1
-            decoded.encode('utf8').decode('ascii') # test if it's ascii string
-            return decoded
-        except:
-            raise DecodeError('Could not decode ID')
-
     def _eval_id_decoding(self, webpage, ol_id):
         try:
             # raise # uncomment to test method with pairing
@@ -183,16 +145,11 @@ class OpenloadIE(InfoExtractor):
             webpage, 'openload ID', fatal=False, group='id')
         video_url = 'https://openload.co/stream/%s?mime=true'
         try:
-            decoded = self._decode_id(ol_id)
+            decoded = self._eval_id_decoding(webpage, ol_id)
             video_url = video_url % decoded
         except DecodeError as e:
-            self.report_warning('%s; falling back to method with evaluating' % e, video_id)
-            try:
-                decoded = self._eval_id_decoding(webpage, ol_id)
-                video_url = video_url % decoded
-            except DecodeError as e:
-                self.report_warning('%s; falling back to method with pairing' % e, video_id)
-                title, video_url = self._pairing_method(video_id)
+            self.report_warning('%s; falling back to method with pairing' % e, video_id)
+            title, video_url = self._pairing_method(video_id)
 
         title = title or self._og_search_title(webpage, default=None) or self._search_regex(
             r'''<span[^>]+class=(["'])title\1[^>]*>(?P<title>[^<]+)''', webpage,
