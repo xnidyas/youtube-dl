@@ -71,7 +71,7 @@ class OpenloadIE(InfoExtractor):
             r'<iframe[^>]+src=["\']((?:https?://)?(?:openload\.(?:co|io)|oload\.tv)/embed/[a-zA-Z0-9-_]+)',
             webpage)
 
-    def _decode_id(self, ol_id):
+    def _decode_id(self, ol_id, numbers):
         try:
             # raise # uncomment to test method with pairing
             decoded = ''
@@ -97,14 +97,16 @@ class OpenloadIE(InfoExtractor):
                     e += 7
                     _more = f >= c
                 g = d ^ b[k % 6]
-                g = g ^ 2689694583
+                for number in numbers:
+                    g = g ^ number
                 for i in range(4):
                     char_dec = (g >> 8 * i) & (c + 127)
+                    if not 31 <= char_dec <= 126:
+                        raise
                     char = compat_chr(char_dec)
                     if char != '#':
                         decoded += char
                 k += 1
-            decoded.encode('utf8').decode('ascii') # test if it's ascii string
             return decoded
         except:
             raise DecodeError('Could not decode ID')
@@ -141,8 +143,10 @@ class OpenloadIE(InfoExtractor):
         ol_id = self._search_regex(
             r'''<span[^>]+id=(["'])[^"']+\1[^>]*>(?P<id>[0-9A-Za-z]+)</span>''',
             webpage, 'openload ID', fatal=False, group='id')
+        numbers = re.findall(r'=(0x[0-9a-f]{4,});', webpage)
+        numbers = [int(x, 16) for x in numbers]
         try:
-            decoded = self._decode_id(ol_id)
+            decoded = self._decode_id(ol_id, numbers)
             video_url = 'https://openload.co/stream/%s?mime=true' % decoded
         except DecodeError as e:
             self.report_warning('%s; falling back to method with pairing' % e, video_id)
