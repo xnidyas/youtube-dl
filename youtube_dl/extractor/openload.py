@@ -79,14 +79,13 @@ class OpenloadIE(InfoExtractor):
                 r"(ﾟωﾟﾉ=.*?\('_'\);.*?)ﾟωﾟﾉ= /｀ｍ´）ﾉ ~┻━┻   //\*´∇｀\*/ \['_'\];",
                 webpage, 'openload decrypt code', flags=re.S)
             js_code = re.sub('''if\s*\([^\}]+?typeof[^\}]+?\}''', '', js_code)
-            js_code = re.sub('''if\s*\([^\}]+?in\s+(window|document)[^\}]+?\}''', '', js_code)
         except ExtractorError:
             raise DecodeError('Could not find JavaScript')
 
         js_code = '''
             var id = "%s"
               , decoded
-              , document
+              , document = {}
               , window = this
               , $ = function(){
                   return {
@@ -101,6 +100,14 @@ class OpenloadIE(InfoExtractor):
                     }
                   }
                 };
+            (function(d){
+              var f = function(){};
+              var s = '';
+              var o = null;
+              ['close','createAttribute','createDocumentFragment','createElement','createElementNS','createEvent','createNSResolver','createRange','createTextNode','createTreeWalker','evaluate','execCommand','getElementById','getElementsByName','getElementsByTagName','importNode','open','queryCommandEnabled','queryCommandIndeterm','queryCommandState','queryCommandValue','write','writeln'].forEach(function(e){d[e]=f;});
+              ['anchors','applets','body','defaultView','doctype','documentElement','embeds','firstChild','forms','images','implementation','links','location','plugins','styleSheets'].forEach(function(e){d[e]=o;});
+              ['URL','characterSet','compatMode','contentType','cookie','designMode','domain','lastModified','referrer','title'].forEach(function(e){d[e]=s;});
+            })(document);
             %s;
             decoded;''' % (ol_id, js_code)
 
