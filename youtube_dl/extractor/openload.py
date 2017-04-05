@@ -66,7 +66,7 @@ class OpenloadIE(InfoExtractor):
     _PAIR_INFO_URL = _API_URL + '/streaming/info'
     _GET_VIDEO_URL = _API_URL + '/streaming/get?file=%s'
 
-    _EXTRACTOR_VERSION = '2017.04.05'
+    _EXTRACTOR_VERSION = '2017.04.05.b'
 
     @staticmethod
     def _extract_urls(webpage):
@@ -131,11 +131,14 @@ class OpenloadIE(InfoExtractor):
 
         try:
             decoded = js2py.eval_js(js_code)
-            if ' ' in decoded or decoded == '':
+            if decoded == '':
                 raise
+            for char in decoded:
+                if re.match(r'''[^\w\-\.~:\[\]@!$'()*+,;=`]''', char):
+                    raise
             return decoded
         except:
-            print(decoder)
+            print(decoder, decoded, sep='\n')
             raise DecodeError('Could not eval ID decoding')
 
     def _pairing_method(self, video_id):
