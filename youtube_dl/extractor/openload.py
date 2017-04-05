@@ -80,6 +80,7 @@ class OpenloadIE(InfoExtractor):
             js_code = self._search_regex(
                 r"(ﾟωﾟﾉ=.*?\('_'\);.*?)ﾟωﾟﾉ= /｀ｍ´）ﾉ ~┻━┻   //\*´∇｀\*/ \['_'\];",
                 webpage, 'openload decrypt code', flags=re.S)
+            decoder = js_code.split("('_');")[-1]
             js_code = re.sub('''if\s*\([^\}]+?typeof[^\}]+?\}''', '', js_code)
         except ExtractorError:
             raise DecodeError('Could not find JavaScript')
@@ -134,6 +135,7 @@ class OpenloadIE(InfoExtractor):
                 raise
             return decoded
         except:
+            print(decoder)
             raise DecodeError('Could not eval ID decoding')
 
     def _pairing_method(self, video_id):
