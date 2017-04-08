@@ -64,7 +64,7 @@ class OpenloadIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _EXTRACTOR_VERSION = '2017.04.08'
+    _EXTRACTOR_VERSION = '2017.04.08b'
 
     @staticmethod
     def _extract_urls(webpage):
@@ -76,12 +76,13 @@ class OpenloadIE(InfoExtractor):
         print("Extractor version: %s" % self._EXTRACTOR_VERSION)
 
         video_id = self._match_id(url)
-        webpage = self._download_webpage('https://openload.co/embed/%s/' % video_id, video_id)
+        url = 'https://openload.co/embed/%s/' % video_id
+        webpage = self._download_webpage(url, video_id)
 
         if 'File not found' in webpage or 'deleted by the owner' in webpage:
             raise ExtractorError('File not found', expected=True, video_id=video_id)
 
-        p = subprocess.Popen(['openload-dl', url, '.'], shell=True,
+        p = subprocess.Popen('openload-dl %s .' % url, shell=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, err = p.communicate()
         rc = p.returncode
